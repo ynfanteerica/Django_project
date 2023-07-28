@@ -1,6 +1,6 @@
-# from django.http import HttpResponse
+from rest_framework.response import Response
 from django.shortcuts import render
-from .forms import BookingForm
+from .forms import BookingForm, NewUserForm
 from .models import Menu
 from django.core import serializers
 from .models import Booking
@@ -8,7 +8,47 @@ from datetime import datetime
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
+from rest_framework import generics
+from .serializers import MenuItemSerializer
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from .models import MenuItem
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import  render, redirect
+from django.contrib.auth import login, authenticate, logout 
+from django.contrib import messages
+from django.contrib.auth.forms import AuthenticationForm 
 
+@api_view()
+@permission_classes([IsAuthenticated])
+# @authentication_classes([TokenAuthentication])
+def msg(request):
+   return Response({"message":"This view is protected"})
+
+
+
+class MenuItemView(generics.ListAPIView, generics.ListCreateAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    ordering_fields = ['price']
+    search_fields = ['title']
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAdminUser()]
+        return [AllowAny()]
+
+
+class SingleItemView(generics.RetrieveUpdateDestroyAPIView, generics.RetrieveAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    def get_permissions(self):
+        if self.request.method == 'POST' or self.request.method == 'PUT' \
+                or self.request.method == 'DELETE' or self.request.method == 'GET':
+            return [IsAdminUser()]
+        return [AllowAny()]
 
 # Create your views here.
 def home(request):
@@ -22,6 +62,41 @@ def reservations(request):
     bookings = Booking.objects.all()
     booking_json = serializers.serialize('json', bookings)
     return render(request, 'bookings.html',{"bookings":booking_json})
+
+def register_request(request):
+	if request.method == "POST":
+		form = NewUserForm(request.POST)
+		if form.is_valid():
+			user = form.save()
+			login(request, user)
+			messages.success(request, "Registration successful." )
+			return redirect("main:homepage")
+		messages.error(request, "Unsuccessful registration. Invalid information.")
+	form = NewUserForm()
+	return render (request=request, template_name="register.html", context={"register_form":form})
+
+def login_request(request):
+	if request.method == "POST":
+		form = AuthenticationForm(request, data=request.POST)
+		if form.is_valid():
+			username = form.cleaned_data.get('username')
+			password = form.cleaned_data.get('password')
+			user = authenticate(username=username, password=password)
+			if user is not None:
+				login(request, user)
+				messages.info(request, f"You are now logged in as {username}.")
+				return redirect("main:homepage")
+			else:
+				messages.error(request,"Invalid username or password.")
+		else:
+			messages.error(request,"Invalid username or password.")
+	form = AuthenticationForm()
+	return render(request=request, template_name="login.html", context={"login_form":form})
+
+def logout_request(request):
+	logout(request)
+	messages.info(request, "You have successfully logged out.") 
+	return redirect("main:homepage")
 
 def book(request):
     form = BookingForm()

@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'djoser' ,
     'LittleLemonDRF',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -82,8 +84,8 @@ DATABASES = {
         'NAME': 'reservations',
         'HOST': '127.0.0.1',
         'PORT': '3306',
-        'USER': 'admindjango',
-        'PASSWORD': 'employee@123!',
+        'USER': 'root',
+        'PASSWORD': 'NewPassword',
     }
 }
 
@@ -135,6 +137,7 @@ REST_FRAMEWORK =  {
         'rest_framework.filters.SearchFilter',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
@@ -142,6 +145,6 @@ REST_FRAMEWORK =  {
     'PAGE_SIZE': 2
 }
    
-    
+DJOSER={"USER_ID_FIELD":"username"}   
     
 
