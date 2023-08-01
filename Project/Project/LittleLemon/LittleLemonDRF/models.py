@@ -25,3 +25,9 @@ class MenuItem(models.Model):
 
    def get_item(self):
     return f'{self.title} : {str(self.price)}'
+ 
+class Register(models.Model):
+      username = models.CharField(max_length=200) 
+      password = models.CharField(max_length=100)
+      def __str__(self):
+        return self.username

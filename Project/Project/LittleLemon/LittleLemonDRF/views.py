@@ -3,13 +3,13 @@ from django.shortcuts import render
 from .forms import BookingForm, NewUserForm
 from .models import Menu
 from django.core import serializers
-from .models import Booking
+from .models import Booking, Register
 from datetime import datetime
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from rest_framework import generics
-from .serializers import MenuItemSerializer
+from .serializers import MenuItemSerializer, UserSerializer, RegisterSerializer
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from .models import MenuItem
@@ -19,6 +19,9 @@ from django.shortcuts import  render, redirect
 from django.contrib.auth import login, authenticate, logout 
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm 
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
+from django.contrib import auth
 
 @api_view()
 @permission_classes([IsAuthenticated])
@@ -62,6 +65,35 @@ def reservations(request):
     bookings = Booking.objects.all()
     booking_json = serializers.serialize('json', bookings)
     return render(request, 'bookings.html',{"bookings":booking_json})
+
+class RegistrationAPI(generics.GenericAPIView):
+    serializer_class = RegisterSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+        "user": UserSerializer(user, context=self.get_serializer_context()).data,
+        "token": Token.objects.create(user)[1]
+        })
+        
+        
+def signup(request):
+    if request.method == "POST":
+        if request.POST['password1'] == request.POST['password2']:
+            try:
+                User.objects.get(username = request.POST['username'])
+                return render (request,'register.html', {'error':'Username is already taken!'})
+            except User.DoesNotExist:
+                user = User.objects.create_user(request.POST['username'],password=request.POST['password1'])
+                auth.login(request,user)
+                return redirect('home')
+        else:
+            return render (request,'register.html', {'error':'Password does not match!'})
+    else:
+        return render(request,'register.html')
+        
 
 def register_request(request):
 	if request.method == "POST":
@@ -113,6 +145,11 @@ def menu(request):
     main_data = {"menu": menu_data}
     return render(request, 'menu.html', {"menu": main_data})
 
+def userconfirm(request):
+    user_data = Register.objects.all()
+    new_data = {"userconfirm": user_data}
+    return render(request, 'register.html', {new_data})
+
 
 def display_menu_item(request, pk=None): 
     if pk: 
@@ -143,3 +180,7 @@ def bookings(request):
     booking_json = serializers.serialize('json', bookings)
 
     return HttpResponse(booking_json, content_type='application/json')
+
+
+
+

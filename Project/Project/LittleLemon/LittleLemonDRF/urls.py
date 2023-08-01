@@ -12,9 +12,12 @@ urlpatterns = [
     path('about/', views.about, name="about"),
     path('book/', views.book, name="book"),
     path('reservations/', views.reservations, name="reservations"),
+    path('registration', views.RegistrationAPI.as_view()),
+    path("signup", views.signup, name="signup"),
     path("register", views.register_request, name="register"),
-     path("login", views.login_request, name="login"),
+    path("login", views.login_request, name="login"),
     path('menu/', views.menu, name="menu"),
+    path('userconfirm/', views.userconfirm, name="userconfirm"),
     path('menu_item/<int:pk>/', views.display_menu_item, name="menu_item"),  
     path('bookings/', views.bookings, name="bookings"),
     
